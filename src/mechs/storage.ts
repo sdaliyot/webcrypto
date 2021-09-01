@@ -4,7 +4,7 @@ import { CryptoKey as InternalCryptoKey } from "../keys";
 const keyStorage = new WeakMap<core.CryptoKey, InternalCryptoKey>();
 
 export function getCryptoKey(key: core.CryptoKey) {
-  const res = keyStorage.get(key);
+  let res = keyStorage.get(key);
   // The key may not be found in the imported keys (after process restart) so we reconstruct (and import) it from the 
   // source __value we stored on the (persisted) key
   if (!res && (key as any).__value) {
