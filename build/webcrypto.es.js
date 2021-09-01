@@ -2,51 +2,23 @@
  * Copyright (c) 2020 Peculiar Ventures, LLC
  */
 
-'use strict';
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-var core = require('webcrypto-core');
-var crypto = require('crypto');
-var process = require('process');
-var tslib = require('tslib');
-var jsonSchema = require('@peculiar/json-schema');
-var pvtsutils = require('pvtsutils');
-var asn1Schema = require('@peculiar/asn1-schema');
-
-function _interopDefaultLegacy (e) { return e && typeof e === 'object' && 'default' in e ? e : { 'default': e }; }
-
-function _interopNamespace(e) {
-  if (e && e.__esModule) return e;
-  var n = Object.create(null);
-  if (e) {
-    Object.keys(e).forEach(function (k) {
-      if (k !== 'default') {
-        var d = Object.getOwnPropertyDescriptor(e, k);
-        Object.defineProperty(n, k, d.get ? d : {
-          enumerable: true,
-          get: function () {
-            return e[k];
-          }
-        });
-      }
-    });
-  }
-  n['default'] = e;
-  return Object.freeze(n);
-}
-
-var core__namespace = /*#__PURE__*/_interopNamespace(core);
-var crypto__default = /*#__PURE__*/_interopDefaultLegacy(crypto);
-var crypto__namespace = /*#__PURE__*/_interopNamespace(crypto);
-var process__namespace = /*#__PURE__*/_interopNamespace(process);
+import * as core from 'webcrypto-core';
+import { BufferSourceConverter } from 'webcrypto-core';
+export { CryptoKey } from 'webcrypto-core';
+import * as crypto from 'crypto';
+import crypto__default from 'crypto';
+import * as process from 'process';
+import { __decorate } from 'tslib';
+import { JsonProp, JsonPropTypes, JsonSerializer, JsonParser } from '@peculiar/json-schema';
+import { Convert } from 'pvtsutils';
+import { AsnParser, AsnSerializer } from '@peculiar/asn1-schema';
 
 const JsonBase64UrlConverter = {
-    fromJSON: (value) => Buffer.from(pvtsutils.Convert.FromBase64Url(value)),
-    toJSON: (value) => pvtsutils.Convert.ToBase64Url(value),
+    fromJSON: (value) => Buffer.from(Convert.FromBase64Url(value)),
+    toJSON: (value) => Convert.ToBase64Url(value),
 };
 
-class CryptoKey extends core__namespace.CryptoKey {
+class CryptoKey extends core.CryptoKey {
     constructor() {
         super(...arguments);
         this.data = Buffer.alloc(0);
@@ -58,17 +30,17 @@ class CryptoKey extends core__namespace.CryptoKey {
         this.alg = "";
     }
 }
-tslib.__decorate([
-    jsonSchema.JsonProp({ name: "ext", type: jsonSchema.JsonPropTypes.Boolean, optional: true })
+__decorate([
+    JsonProp({ name: "ext", type: JsonPropTypes.Boolean, optional: true })
 ], CryptoKey.prototype, "extractable", void 0);
-tslib.__decorate([
-    jsonSchema.JsonProp({ name: "key_ops", type: jsonSchema.JsonPropTypes.String, repeated: true, optional: true })
+__decorate([
+    JsonProp({ name: "key_ops", type: JsonPropTypes.String, repeated: true, optional: true })
 ], CryptoKey.prototype, "usages", void 0);
-tslib.__decorate([
-    jsonSchema.JsonProp({ type: jsonSchema.JsonPropTypes.String })
+__decorate([
+    JsonProp({ type: JsonPropTypes.String })
 ], CryptoKey.prototype, "kty", void 0);
-tslib.__decorate([
-    jsonSchema.JsonProp({ type: jsonSchema.JsonPropTypes.String })
+__decorate([
+    JsonProp({ type: JsonPropTypes.String })
 ], CryptoKey.prototype, "alg", void 0);
 
 class SymmetricKey extends CryptoKey {
@@ -98,14 +70,14 @@ class AesCryptoKey extends SymmetricKey {
             case "AES-ECB":
                 return `A${this.algorithm.length}ECB`;
             default:
-                throw new core__namespace.AlgorithmError("Unsupported algorithm name");
+                throw new core.AlgorithmError("Unsupported algorithm name");
         }
     }
     set alg(value) {
     }
 }
-tslib.__decorate([
-    jsonSchema.JsonProp({ name: "k", converter: JsonBase64UrlConverter })
+__decorate([
+    JsonProp({ name: "k", converter: JsonBase64UrlConverter })
 ], AesCryptoKey.prototype, "data", void 0);
 
 const keyStorage = new WeakMap();
@@ -119,12 +91,12 @@ function getCryptoKey(key) {
         res.algorithm = key.algorithm;
     }
     if (!res) {
-        throw new core__namespace.OperationError("Cannot get CryptoKey from secure storage");
+        throw new core.OperationError("Cannot get CryptoKey from secure storage");
     }
     return res;
 }
 function setCryptoKey(value) {
-    const key = core__namespace.CryptoKey.create(value.algorithm, value.type, value.extractable, value.usages);
+    const key = core.CryptoKey.create(value.algorithm, value.type, value.extractable, value.usages);
     key.__value = value;
     Object.freeze(key);
     keyStorage.set(key, value);
@@ -137,7 +109,7 @@ class AesCrypto {
         key.algorithm = algorithm;
         key.extractable = extractable;
         key.usages = keyUsages;
-        key.data = crypto__default['default'].randomBytes(algorithm.length >> 3);
+        key.data = crypto__default.randomBytes(algorithm.length >> 3);
         return key;
     }
     static async exportKey(format, key) {
@@ -146,25 +118,25 @@ class AesCrypto {
         }
         switch (format.toLowerCase()) {
             case "jwk":
-                return jsonSchema.JsonSerializer.toJSON(key);
+                return JsonSerializer.toJSON(key);
             case "raw":
                 return new Uint8Array(key.data).buffer;
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk' or 'raw'");
+                throw new core.OperationError("format: Must be 'jwk' or 'raw'");
         }
     }
     static async importKey(format, keyData, algorithm, extractable, keyUsages) {
         let key;
         switch (format.toLowerCase()) {
             case "jwk":
-                key = jsonSchema.JsonParser.fromJSON(keyData, { targetSchema: AesCryptoKey });
+                key = JsonParser.fromJSON(keyData, { targetSchema: AesCryptoKey });
                 break;
             case "raw":
                 key = new AesCryptoKey();
                 key.data = Buffer.from(keyData);
                 break;
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk' or 'raw'");
+                throw new core.OperationError("format: Must be 'jwk' or 'raw'");
         }
         key.algorithm = algorithm;
         key.algorithm.length = key.data.length << 3;
@@ -176,7 +148,7 @@ class AesCrypto {
             case 256:
                 break;
             default:
-                throw new core__namespace.OperationError("keyData: Is wrong key length");
+                throw new core.OperationError("keyData: Is wrong key length");
         }
         return key;
     }
@@ -193,7 +165,7 @@ class AesCrypto {
             case "AES-ECB":
                 return this.encryptAesECB(algorithm, key, Buffer.from(data));
             default:
-                throw new core__namespace.OperationError("algorithm: Is not recognized");
+                throw new core.OperationError("algorithm: Is not recognized");
         }
     }
     static async decrypt(algorithm, key, data) {
@@ -212,37 +184,37 @@ class AesCrypto {
             case "AES-ECB":
                 return this.decryptAesECB(algorithm, key, Buffer.from(data));
             default:
-                throw new core__namespace.OperationError("algorithm: Is not recognized");
+                throw new core.OperationError("algorithm: Is not recognized");
         }
     }
     static async encryptAesCBC(algorithm, key, data) {
-        const cipher = crypto__default['default'].createCipheriv(`aes-${key.algorithm.length}-cbc`, key.data, new Uint8Array(algorithm.iv));
+        const cipher = crypto__default.createCipheriv(`aes-${key.algorithm.length}-cbc`, key.data, new Uint8Array(algorithm.iv));
         let enc = cipher.update(data);
         enc = Buffer.concat([enc, cipher.final()]);
         const res = new Uint8Array(enc).buffer;
         return res;
     }
     static async decryptAesCBC(algorithm, key, data) {
-        const decipher = crypto__default['default'].createDecipheriv(`aes-${key.algorithm.length}-cbc`, key.data, new Uint8Array(algorithm.iv));
+        const decipher = crypto__default.createDecipheriv(`aes-${key.algorithm.length}-cbc`, key.data, new Uint8Array(algorithm.iv));
         let dec = decipher.update(data);
         dec = Buffer.concat([dec, decipher.final()]);
         return new Uint8Array(dec).buffer;
     }
     static async encryptAesCTR(algorithm, key, data) {
-        const cipher = crypto__default['default'].createCipheriv(`aes-${key.algorithm.length}-ctr`, key.data, Buffer.from(algorithm.counter));
+        const cipher = crypto__default.createCipheriv(`aes-${key.algorithm.length}-ctr`, key.data, Buffer.from(algorithm.counter));
         let enc = cipher.update(data);
         enc = Buffer.concat([enc, cipher.final()]);
         const res = new Uint8Array(enc).buffer;
         return res;
     }
     static async decryptAesCTR(algorithm, key, data) {
-        const decipher = crypto__default['default'].createDecipheriv(`aes-${key.algorithm.length}-ctr`, key.data, new Uint8Array(algorithm.counter));
+        const decipher = crypto__default.createDecipheriv(`aes-${key.algorithm.length}-ctr`, key.data, new Uint8Array(algorithm.counter));
         let dec = decipher.update(data);
         dec = Buffer.concat([dec, decipher.final()]);
         return new Uint8Array(dec).buffer;
     }
     static async encryptAesGCM(algorithm, key, data) {
-        const cipher = crypto__default['default'].createCipheriv(`aes-${key.algorithm.length}-gcm`, key.data, Buffer.from(algorithm.iv), {
+        const cipher = crypto__default.createCipheriv(`aes-${key.algorithm.length}-gcm`, key.data, Buffer.from(algorithm.iv), {
             authTagLength: (algorithm.tagLength || 128) >> 3,
         });
         if (algorithm.additionalData) {
@@ -254,7 +226,7 @@ class AesCrypto {
         return res;
     }
     static async decryptAesGCM(algorithm, key, data) {
-        const decipher = crypto__default['default'].createDecipheriv(`aes-${key.algorithm.length}-gcm`, key.data, new Uint8Array(algorithm.iv));
+        const decipher = crypto__default.createDecipheriv(`aes-${key.algorithm.length}-gcm`, key.data, new Uint8Array(algorithm.iv));
         const tagLength = (algorithm.tagLength || 128) >> 3;
         const enc = data.slice(0, data.length - tagLength);
         const tag = data.slice(data.length - tagLength);
@@ -267,26 +239,26 @@ class AesCrypto {
         return new Uint8Array(dec).buffer;
     }
     static async encryptAesKW(algorithm, key, data) {
-        const cipher = crypto__default['default'].createCipheriv(`id-aes${key.algorithm.length}-wrap`, key.data, this.AES_KW_IV);
+        const cipher = crypto__default.createCipheriv(`id-aes${key.algorithm.length}-wrap`, key.data, this.AES_KW_IV);
         let enc = cipher.update(data);
         enc = Buffer.concat([enc, cipher.final()]);
         return new Uint8Array(enc).buffer;
     }
     static async decryptAesKW(algorithm, key, data) {
-        const decipher = crypto__default['default'].createDecipheriv(`id-aes${key.algorithm.length}-wrap`, key.data, this.AES_KW_IV);
+        const decipher = crypto__default.createDecipheriv(`id-aes${key.algorithm.length}-wrap`, key.data, this.AES_KW_IV);
         let dec = decipher.update(data);
         dec = Buffer.concat([dec, decipher.final()]);
         return new Uint8Array(dec).buffer;
     }
     static async encryptAesECB(algorithm, key, data) {
-        const cipher = crypto__default['default'].createCipheriv(`aes-${key.algorithm.length}-ecb`, key.data, new Uint8Array(0));
+        const cipher = crypto__default.createCipheriv(`aes-${key.algorithm.length}-ecb`, key.data, new Uint8Array(0));
         let enc = cipher.update(data);
         enc = Buffer.concat([enc, cipher.final()]);
         const res = new Uint8Array(enc).buffer;
         return res;
     }
     static async decryptAesECB(algorithm, key, data) {
-        const decipher = crypto__default['default'].createDecipheriv(`aes-${key.algorithm.length}-ecb`, key.data, new Uint8Array(0));
+        const decipher = crypto__default.createDecipheriv(`aes-${key.algorithm.length}-ecb`, key.data, new Uint8Array(0));
         let dec = decipher.update(data);
         dec = Buffer.concat([dec, decipher.final()]);
         return new Uint8Array(dec).buffer;
@@ -294,7 +266,7 @@ class AesCrypto {
 }
 AesCrypto.AES_KW_IV = Buffer.from("A6A6A6A6A6A6A6A6", "hex");
 
-class AesCbcProvider extends core__namespace.AesCbcProvider {
+class AesCbcProvider extends core.AesCbcProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const key = await AesCrypto.generateKey({
             name: this.name,
@@ -347,7 +319,7 @@ function xor(a, b) {
     return output;
 }
 function aes(key, message) {
-    const cipher = crypto__namespace.createCipheriv(`aes${key.length << 3}`, key, zero);
+    const cipher = crypto.createCipheriv(`aes${key.length << 3}`, key, zero);
     const result = cipher.update(message);
     cipher.final();
     return result;
@@ -408,7 +380,7 @@ function aesCmac(key, message) {
     y = xor(lastBlock, x);
     return aes(key, y);
 }
-class AesCmacProvider extends core__namespace.AesCmacProvider {
+class AesCmacProvider extends core.AesCmacProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const key = await AesCrypto.generateKey({
             name: this.name,
@@ -439,7 +411,7 @@ class AesCmacProvider extends core__namespace.AesCmacProvider {
     }
 }
 
-class AesCtrProvider extends core__namespace.AesCtrProvider {
+class AesCtrProvider extends core.AesCtrProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const key = await AesCrypto.generateKey({
             name: this.name,
@@ -468,7 +440,7 @@ class AesCtrProvider extends core__namespace.AesCtrProvider {
     }
 }
 
-class AesGcmProvider extends core__namespace.AesGcmProvider {
+class AesGcmProvider extends core.AesGcmProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const key = await AesCrypto.generateKey({
             name: this.name,
@@ -497,7 +469,7 @@ class AesGcmProvider extends core__namespace.AesGcmProvider {
     }
 }
 
-class AesKwProvider extends core__namespace.AesKwProvider {
+class AesKwProvider extends core.AesKwProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const res = await AesCrypto.generateKey({
             name: this.name,
@@ -526,7 +498,7 @@ class AesKwProvider extends core__namespace.AesKwProvider {
     }
 }
 
-class AesEcbProvider extends core__namespace.AesEcbProvider {
+class AesEcbProvider extends core.AesEcbProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const key = await AesCrypto.generateKey({
             name: this.name,
@@ -563,14 +535,14 @@ class DesCryptoKey extends SymmetricKey {
             case "DES-EDE3-CBC":
                 return `3DES-CBC`;
             default:
-                throw new core__namespace.AlgorithmError("Unsupported algorithm name");
+                throw new core.AlgorithmError("Unsupported algorithm name");
         }
     }
     set alg(value) {
     }
 }
-tslib.__decorate([
-    jsonSchema.JsonProp({ name: "k", converter: JsonBase64UrlConverter })
+__decorate([
+    JsonProp({ name: "k", converter: JsonBase64UrlConverter })
 ], DesCryptoKey.prototype, "data", void 0);
 
 class DesCrypto {
@@ -579,31 +551,31 @@ class DesCrypto {
         key.algorithm = algorithm;
         key.extractable = extractable;
         key.usages = keyUsages;
-        key.data = crypto__default['default'].randomBytes(algorithm.length >> 3);
+        key.data = crypto__default.randomBytes(algorithm.length >> 3);
         return key;
     }
     static async exportKey(format, key) {
         switch (format.toLowerCase()) {
             case "jwk":
-                return jsonSchema.JsonSerializer.toJSON(key);
+                return JsonSerializer.toJSON(key);
             case "raw":
                 return new Uint8Array(key.data).buffer;
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk' or 'raw'");
+                throw new core.OperationError("format: Must be 'jwk' or 'raw'");
         }
     }
     static async importKey(format, keyData, algorithm, extractable, keyUsages) {
         let key;
         switch (format.toLowerCase()) {
             case "jwk":
-                key = jsonSchema.JsonParser.fromJSON(keyData, { targetSchema: DesCryptoKey });
+                key = JsonParser.fromJSON(keyData, { targetSchema: DesCryptoKey });
                 break;
             case "raw":
                 key = new DesCryptoKey();
                 key.data = Buffer.from(keyData);
                 break;
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk' or 'raw'");
+                throw new core.OperationError("format: Must be 'jwk' or 'raw'");
         }
         key.algorithm = algorithm;
         key.extractable = extractable;
@@ -617,7 +589,7 @@ class DesCrypto {
             case "DES-EDE3-CBC":
                 return this.encryptDesEDE3CBC(algorithm, key, Buffer.from(data));
             default:
-                throw new core__namespace.OperationError("algorithm: Is not recognized");
+                throw new core.OperationError("algorithm: Is not recognized");
         }
     }
     static async decrypt(algorithm, key, data) {
@@ -630,38 +602,38 @@ class DesCrypto {
             case "DES-EDE3-CBC":
                 return this.decryptDesEDE3CBC(algorithm, key, Buffer.from(data));
             default:
-                throw new core__namespace.OperationError("algorithm: Is not recognized");
+                throw new core.OperationError("algorithm: Is not recognized");
         }
     }
     static async encryptDesCBC(algorithm, key, data) {
-        const cipher = crypto__default['default'].createCipheriv(`des-cbc`, key.data, new Uint8Array(algorithm.iv));
+        const cipher = crypto__default.createCipheriv(`des-cbc`, key.data, new Uint8Array(algorithm.iv));
         let enc = cipher.update(data);
         enc = Buffer.concat([enc, cipher.final()]);
         const res = new Uint8Array(enc).buffer;
         return res;
     }
     static async decryptDesCBC(algorithm, key, data) {
-        const decipher = crypto__default['default'].createDecipheriv(`des-cbc`, key.data, new Uint8Array(algorithm.iv));
+        const decipher = crypto__default.createDecipheriv(`des-cbc`, key.data, new Uint8Array(algorithm.iv));
         let dec = decipher.update(data);
         dec = Buffer.concat([dec, decipher.final()]);
         return new Uint8Array(dec).buffer;
     }
     static async encryptDesEDE3CBC(algorithm, key, data) {
-        const cipher = crypto__default['default'].createCipheriv(`des-ede3-cbc`, key.data, Buffer.from(algorithm.iv));
+        const cipher = crypto__default.createCipheriv(`des-ede3-cbc`, key.data, Buffer.from(algorithm.iv));
         let enc = cipher.update(data);
         enc = Buffer.concat([enc, cipher.final()]);
         const res = new Uint8Array(enc).buffer;
         return res;
     }
     static async decryptDesEDE3CBC(algorithm, key, data) {
-        const decipher = crypto__default['default'].createDecipheriv(`des-ede3-cbc`, key.data, new Uint8Array(algorithm.iv));
+        const decipher = crypto__default.createDecipheriv(`des-ede3-cbc`, key.data, new Uint8Array(algorithm.iv));
         let dec = decipher.update(data);
         dec = Buffer.concat([dec, decipher.final()]);
         return new Uint8Array(dec).buffer;
     }
 }
 
-class DesCbcProvider extends core__namespace.DesProvider {
+class DesCbcProvider extends core.DesProvider {
     constructor() {
         super(...arguments);
         this.keySizeBits = 64;
@@ -687,7 +659,7 @@ class DesCbcProvider extends core__namespace.DesProvider {
     async onImportKey(format, keyData, algorithm, extractable, keyUsages) {
         const key = await DesCrypto.importKey(format, keyData, { name: this.name, length: this.keySizeBits }, extractable, keyUsages);
         if (key.data.length !== (this.keySizeBits >> 3)) {
-            throw new core__namespace.OperationError("keyData: Wrong key size");
+            throw new core.OperationError("keyData: Wrong key size");
         }
         return setCryptoKey(key);
     }
@@ -699,7 +671,7 @@ class DesCbcProvider extends core__namespace.DesProvider {
     }
 }
 
-class DesEde3CbcProvider extends core__namespace.DesProvider {
+class DesEde3CbcProvider extends core.DesProvider {
     constructor() {
         super(...arguments);
         this.keySizeBits = 192;
@@ -725,7 +697,7 @@ class DesEde3CbcProvider extends core__namespace.DesProvider {
     async onImportKey(format, keyData, algorithm, extractable, keyUsages) {
         const key = await DesCrypto.importKey(format, keyData, { name: this.name, length: this.keySizeBits }, extractable, keyUsages);
         if (key.data.length !== (this.keySizeBits >> 3)) {
-            throw new core__namespace.OperationError("keyData: Wrong key size");
+            throw new core.OperationError("keyData: Wrong key size");
         }
         return setCryptoKey(key);
     }
@@ -750,7 +722,7 @@ function getJwkAlgorithm(algorithm) {
         case "RSA-PKCS1":
             return `RS1`;
         default:
-            throw new core__namespace.OperationError("algorithm: Is not recognized");
+            throw new core.OperationError("algorithm: Is not recognized");
     }
 }
 
@@ -760,8 +732,8 @@ class RsaPrivateKey extends AsymmetricKey {
         this.type = "private";
     }
     getKey() {
-        const keyInfo = asn1Schema.AsnParser.parse(this.data, core__namespace.asn1.PrivateKeyInfo);
-        return asn1Schema.AsnParser.parse(keyInfo.privateKey, core__namespace.asn1.RsaPrivateKey);
+        const keyInfo = AsnParser.parse(this.data, core.asn1.PrivateKeyInfo);
+        return AsnParser.parse(keyInfo.privateKey, core.asn1.RsaPrivateKey);
     }
     toJSON() {
         const key = this.getKey();
@@ -771,15 +743,15 @@ class RsaPrivateKey extends AsymmetricKey {
             key_ops: this.usages,
             ext: this.extractable,
         };
-        return Object.assign(json, jsonSchema.JsonSerializer.toJSON(key));
+        return Object.assign(json, JsonSerializer.toJSON(key));
     }
     fromJSON(json) {
-        const key = jsonSchema.JsonParser.fromJSON(json, { targetSchema: core__namespace.asn1.RsaPrivateKey });
-        const keyInfo = new core__namespace.asn1.PrivateKeyInfo();
+        const key = JsonParser.fromJSON(json, { targetSchema: core.asn1.RsaPrivateKey });
+        const keyInfo = new core.asn1.PrivateKeyInfo();
         keyInfo.privateKeyAlgorithm.algorithm = "1.2.840.113549.1.1.1";
         keyInfo.privateKeyAlgorithm.parameters = null;
-        keyInfo.privateKey = asn1Schema.AsnSerializer.serialize(key);
-        this.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        keyInfo.privateKey = AsnSerializer.serialize(key);
+        this.data = Buffer.from(AsnSerializer.serialize(keyInfo));
     }
 }
 
@@ -789,8 +761,8 @@ class RsaPublicKey extends AsymmetricKey {
         this.type = "public";
     }
     getKey() {
-        const keyInfo = asn1Schema.AsnParser.parse(this.data, core__namespace.asn1.PublicKeyInfo);
-        return asn1Schema.AsnParser.parse(keyInfo.publicKey, core__namespace.asn1.RsaPublicKey);
+        const keyInfo = AsnParser.parse(this.data, core.asn1.PublicKeyInfo);
+        return AsnParser.parse(keyInfo.publicKey, core.asn1.RsaPublicKey);
     }
     toJSON() {
         const key = this.getKey();
@@ -800,15 +772,15 @@ class RsaPublicKey extends AsymmetricKey {
             key_ops: this.usages,
             ext: this.extractable,
         };
-        return Object.assign(json, jsonSchema.JsonSerializer.toJSON(key));
+        return Object.assign(json, JsonSerializer.toJSON(key));
     }
     fromJSON(json) {
-        const key = jsonSchema.JsonParser.fromJSON(json, { targetSchema: core__namespace.asn1.RsaPublicKey });
-        const keyInfo = new core__namespace.asn1.PublicKeyInfo();
+        const key = JsonParser.fromJSON(json, { targetSchema: core.asn1.RsaPublicKey });
+        const keyInfo = new core.asn1.PublicKeyInfo();
         keyInfo.publicKeyAlgorithm.algorithm = "1.2.840.113549.1.1.1";
         keyInfo.publicKeyAlgorithm.parameters = null;
-        keyInfo.publicKey = asn1Schema.AsnSerializer.serialize(key);
-        this.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        keyInfo.publicKey = AsnSerializer.serialize(key);
+        this.data = Buffer.from(AsnSerializer.serialize(keyInfo));
     }
 }
 
@@ -826,7 +798,7 @@ class RsaCrypto {
             Buffer.alloc(4 - algorithm.publicExponent.byteLength, 0),
             Buffer.from(algorithm.publicExponent),
         ]).readInt32BE(0);
-        const keys = crypto__default['default'].generateKeyPairSync("rsa", {
+        const keys = crypto__default.generateKeyPairSync("rsa", {
             modulusLength: algorithm.modulusLength,
             publicExponent,
             publicKeyEncoding: {
@@ -849,12 +821,12 @@ class RsaCrypto {
     static async exportKey(format, key) {
         switch (format.toLowerCase()) {
             case "jwk":
-                return jsonSchema.JsonSerializer.toJSON(key);
+                return JsonSerializer.toJSON(key);
             case "pkcs8":
             case "spki":
                 return new Uint8Array(key.data).buffer;
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk', 'pkcs8' or 'spki'");
+                throw new core.OperationError("format: Must be 'jwk', 'pkcs8' or 'spki'");
         }
     }
     static async importKey(format, keyData, algorithm, extractable, keyUsages) {
@@ -862,26 +834,26 @@ class RsaCrypto {
             case "jwk": {
                 const jwk = keyData;
                 if (jwk.d) {
-                    const asnKey = jsonSchema.JsonParser.fromJSON(keyData, { targetSchema: core__namespace.asn1.RsaPrivateKey });
+                    const asnKey = JsonParser.fromJSON(keyData, { targetSchema: core.asn1.RsaPrivateKey });
                     return this.importPrivateKey(asnKey, algorithm, extractable, keyUsages);
                 }
                 else {
-                    const asnKey = jsonSchema.JsonParser.fromJSON(keyData, { targetSchema: core__namespace.asn1.RsaPublicKey });
+                    const asnKey = JsonParser.fromJSON(keyData, { targetSchema: core.asn1.RsaPublicKey });
                     return this.importPublicKey(asnKey, algorithm, extractable, keyUsages);
                 }
             }
             case "spki": {
-                const keyInfo = asn1Schema.AsnParser.parse(new Uint8Array(keyData), core__namespace.asn1.PublicKeyInfo);
-                const asnKey = asn1Schema.AsnParser.parse(keyInfo.publicKey, core__namespace.asn1.RsaPublicKey);
+                const keyInfo = AsnParser.parse(new Uint8Array(keyData), core.asn1.PublicKeyInfo);
+                const asnKey = AsnParser.parse(keyInfo.publicKey, core.asn1.RsaPublicKey);
                 return this.importPublicKey(asnKey, algorithm, extractable, keyUsages);
             }
             case "pkcs8": {
-                const keyInfo = asn1Schema.AsnParser.parse(new Uint8Array(keyData), core__namespace.asn1.PrivateKeyInfo);
-                const asnKey = asn1Schema.AsnParser.parse(keyInfo.privateKey, core__namespace.asn1.RsaPrivateKey);
+                const keyInfo = AsnParser.parse(new Uint8Array(keyData), core.asn1.PrivateKeyInfo);
+                const asnKey = AsnParser.parse(keyInfo.privateKey, core.asn1.RsaPrivateKey);
                 return this.importPrivateKey(asnKey, algorithm, extractable, keyUsages);
             }
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk', 'pkcs8' or 'spki'");
+                throw new core.OperationError("format: Must be 'jwk', 'pkcs8' or 'spki'");
         }
     }
     static async sign(algorithm, key, data) {
@@ -890,7 +862,7 @@ class RsaCrypto {
             case "RSASSA-PKCS1-V1_5":
                 return this.signRsa(algorithm, key, data);
             default:
-                throw new core__namespace.OperationError("algorithm: Is not recognized");
+                throw new core.OperationError("algorithm: Is not recognized");
         }
     }
     static async verify(algorithm, key, signature, data) {
@@ -899,7 +871,7 @@ class RsaCrypto {
             case "RSASSA-PKCS1-V1_5":
                 return this.verifySSA(algorithm, key, data, signature);
             default:
-                throw new core__namespace.OperationError("algorithm: Is not recognized");
+                throw new core.OperationError("algorithm: Is not recognized");
         }
     }
     static async encrypt(algorithm, key, data) {
@@ -907,7 +879,7 @@ class RsaCrypto {
             case "RSA-OAEP":
                 return this.encryptOAEP(algorithm, key, data);
             default:
-                throw new core__namespace.OperationError("algorithm: Is not recognized");
+                throw new core.OperationError("algorithm: Is not recognized");
         }
     }
     static async decrypt(algorithm, key, data) {
@@ -915,16 +887,16 @@ class RsaCrypto {
             case "RSA-OAEP":
                 return this.decryptOAEP(algorithm, key, data);
             default:
-                throw new core__namespace.OperationError("algorithm: Is not recognized");
+                throw new core.OperationError("algorithm: Is not recognized");
         }
     }
     static importPrivateKey(asnKey, algorithm, extractable, keyUsages) {
-        const keyInfo = new core__namespace.asn1.PrivateKeyInfo();
+        const keyInfo = new core.asn1.PrivateKeyInfo();
         keyInfo.privateKeyAlgorithm.algorithm = "1.2.840.113549.1.1.1";
         keyInfo.privateKeyAlgorithm.parameters = null;
-        keyInfo.privateKey = asn1Schema.AsnSerializer.serialize(asnKey);
+        keyInfo.privateKey = AsnSerializer.serialize(asnKey);
         const key = new RsaPrivateKey();
-        key.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        key.data = Buffer.from(AsnSerializer.serialize(keyInfo));
         key.algorithm = Object.assign({}, algorithm);
         key.algorithm.publicExponent = new Uint8Array(asnKey.publicExponent);
         key.algorithm.modulusLength = asnKey.modulus.byteLength << 3;
@@ -933,12 +905,12 @@ class RsaCrypto {
         return key;
     }
     static importPublicKey(asnKey, algorithm, extractable, keyUsages) {
-        const keyInfo = new core__namespace.asn1.PublicKeyInfo();
+        const keyInfo = new core.asn1.PublicKeyInfo();
         keyInfo.publicKeyAlgorithm.algorithm = "1.2.840.113549.1.1.1";
         keyInfo.publicKeyAlgorithm.parameters = null;
-        keyInfo.publicKey = asn1Schema.AsnSerializer.serialize(asnKey);
+        keyInfo.publicKey = AsnSerializer.serialize(asnKey);
         const key = new RsaPublicKey();
-        key.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        key.data = Buffer.from(AsnSerializer.serialize(keyInfo));
         key.algorithm = Object.assign({}, algorithm);
         key.algorithm.publicExponent = new Uint8Array(asnKey.publicExponent);
         key.algorithm.modulusLength = asnKey.modulus.byteLength << 3;
@@ -957,12 +929,12 @@ class RsaCrypto {
             case "SHA-512":
                 return "RSA-SHA512";
             default:
-                throw new core__namespace.OperationError("algorithm.hash: Is not recognized");
+                throw new core.OperationError("algorithm.hash: Is not recognized");
         }
     }
     static signRsa(algorithm, key, data) {
         const cryptoAlg = this.getCryptoAlgorithm(key.algorithm);
-        const signer = crypto__default['default'].createSign(cryptoAlg);
+        const signer = crypto__default.createSign(cryptoAlg);
         signer.update(Buffer.from(data));
         if (!key.pem) {
             key.pem = `-----BEGIN PRIVATE KEY-----\n${key.data.toString("base64")}\n-----END PRIVATE KEY-----`;
@@ -971,7 +943,7 @@ class RsaCrypto {
             key: key.pem,
         };
         if (algorithm.name.toUpperCase() === "RSA-PSS") {
-            options.padding = crypto__default['default'].constants.RSA_PKCS1_PSS_PADDING;
+            options.padding = crypto__default.constants.RSA_PKCS1_PSS_PADDING;
             options.saltLength = algorithm.saltLength;
         }
         const signature = signer.sign(options);
@@ -979,7 +951,7 @@ class RsaCrypto {
     }
     static verifySSA(algorithm, key, data, signature) {
         const cryptoAlg = this.getCryptoAlgorithm(key.algorithm);
-        const signer = crypto__default['default'].createVerify(cryptoAlg);
+        const signer = crypto__default.createVerify(cryptoAlg);
         signer.update(Buffer.from(data));
         if (!key.pem) {
             key.pem = `-----BEGIN PUBLIC KEY-----\n${key.data.toString("base64")}\n-----END PUBLIC KEY-----`;
@@ -988,7 +960,7 @@ class RsaCrypto {
             key: key.pem,
         };
         if (algorithm.name.toUpperCase() === "RSA-PSS") {
-            options.padding = crypto__default['default'].constants.RSA_PKCS1_PSS_PADDING;
+            options.padding = crypto__default.constants.RSA_PKCS1_PSS_PADDING;
             options.saltLength = algorithm.saltLength;
         }
         const ok = signer.verify(options, signature);
@@ -997,24 +969,24 @@ class RsaCrypto {
     static encryptOAEP(algorithm, key, data) {
         const options = {
             key: `-----BEGIN PUBLIC KEY-----\n${key.data.toString("base64")}\n-----END PUBLIC KEY-----`,
-            padding: crypto__default['default'].constants.RSA_PKCS1_OAEP_PADDING,
+            padding: crypto__default.constants.RSA_PKCS1_OAEP_PADDING,
         };
         if (algorithm.label) ;
-        return new Uint8Array(crypto__default['default'].publicEncrypt(options, data)).buffer;
+        return new Uint8Array(crypto__default.publicEncrypt(options, data)).buffer;
     }
     static decryptOAEP(algorithm, key, data) {
         const options = {
             key: `-----BEGIN PRIVATE KEY-----\n${key.data.toString("base64")}\n-----END PRIVATE KEY-----`,
-            padding: crypto__default['default'].constants.RSA_PKCS1_OAEP_PADDING,
+            padding: crypto__default.constants.RSA_PKCS1_OAEP_PADDING,
         };
         if (algorithm.label) ;
-        return new Uint8Array(crypto__default['default'].privateDecrypt(options, data)).buffer;
+        return new Uint8Array(crypto__default.privateDecrypt(options, data)).buffer;
     }
 }
 RsaCrypto.publicKeyUsages = ["verify", "encrypt", "wrapKey"];
 RsaCrypto.privateKeyUsages = ["sign", "decrypt", "unwrapKey"];
 
-class RsaSsaProvider extends core__namespace.RsaSsaProvider {
+class RsaSsaProvider extends core.RsaSsaProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const keys = await RsaCrypto.generateKey({
             ...algorithm,
@@ -1047,7 +1019,7 @@ class RsaSsaProvider extends core__namespace.RsaSsaProvider {
     }
 }
 
-class RsaPssProvider extends core__namespace.RsaPssProvider {
+class RsaPssProvider extends core.RsaPssProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const keys = await RsaCrypto.generateKey({
             ...algorithm,
@@ -1096,13 +1068,13 @@ class ShaCrypto {
         }
     }
     static digest(algorithm, data) {
-        const hash = crypto__default['default'].createHash(algorithm.name.replace("-", ""))
+        const hash = crypto__default.createHash(algorithm.name.replace("-", ""))
             .update(Buffer.from(data)).digest();
         return new Uint8Array(hash).buffer;
     }
 }
 
-class RsaOaepProvider extends core__namespace.RsaOaepProvider {
+class RsaOaepProvider extends core.RsaOaepProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const keys = await RsaCrypto.generateKey({
             ...algorithm,
@@ -1127,12 +1099,12 @@ class RsaOaepProvider extends core__namespace.RsaOaepProvider {
         const seed = message.subarray(1, hashSize + 1);
         const dataBlock = message.subarray(hashSize + 1);
         dataBlock.set(dataView, hashSize + psLength + 1);
-        const labelHash = crypto__default['default'].createHash(internalKey.algorithm.hash.name.replace("-", ""))
-            .update(core__namespace.BufferSourceConverter.toUint8Array(algorithm.label || new Uint8Array(0)))
+        const labelHash = crypto__default.createHash(internalKey.algorithm.hash.name.replace("-", ""))
+            .update(core.BufferSourceConverter.toUint8Array(algorithm.label || new Uint8Array(0)))
             .digest();
         dataBlock.set(labelHash, 0);
         dataBlock[hashSize + psLength] = 1;
-        crypto__default['default'].randomFillSync(seed);
+        crypto__default.randomFillSync(seed);
         const dataBlockMask = this.mgf1(internalKey.algorithm.hash, seed, dataBlock.length);
         for (let i = 0; i < dataBlock.length; i++) {
             dataBlock[i] ^= dataBlockMask[i];
@@ -1144,9 +1116,9 @@ class RsaOaepProvider extends core__namespace.RsaOaepProvider {
         if (!internalKey.pem) {
             internalKey.pem = `-----BEGIN PUBLIC KEY-----\n${internalKey.data.toString("base64")}\n-----END PUBLIC KEY-----`;
         }
-        const pkcs0 = crypto__default['default'].publicEncrypt({
+        const pkcs0 = crypto__default.publicEncrypt({
             key: internalKey.pem,
-            padding: crypto__default['default'].constants.RSA_NO_PADDING,
+            padding: crypto__default.constants.RSA_NO_PADDING,
         }, Buffer.from(message));
         return new Uint8Array(pkcs0).buffer;
     }
@@ -1161,9 +1133,9 @@ class RsaOaepProvider extends core__namespace.RsaOaepProvider {
         if (!internalKey.pem) {
             internalKey.pem = `-----BEGIN PRIVATE KEY-----\n${internalKey.data.toString("base64")}\n-----END PRIVATE KEY-----`;
         }
-        let pkcs0 = crypto__default['default'].privateDecrypt({
+        let pkcs0 = crypto__default.privateDecrypt({
             key: internalKey.pem,
-            padding: crypto__default['default'].constants.RSA_NO_PADDING,
+            padding: crypto__default.constants.RSA_NO_PADDING,
         }, Buffer.from(data));
         const z = pkcs0[0];
         const seed = pkcs0.subarray(1, hashSize + 1);
@@ -1179,8 +1151,8 @@ class RsaOaepProvider extends core__namespace.RsaOaepProvider {
         for (let i = 0; i < dataBlock.length; i++) {
             dataBlock[i] ^= dataBlockMask[i];
         }
-        const labelHash = crypto__default['default'].createHash(internalKey.algorithm.hash.name.replace("-", ""))
-            .update(core__namespace.BufferSourceConverter.toUint8Array(algorithm.label || new Uint8Array(0)))
+        const labelHash = crypto__default.createHash(internalKey.algorithm.hash.name.replace("-", ""))
+            .update(core.BufferSourceConverter.toUint8Array(algorithm.label || new Uint8Array(0)))
             .digest();
         for (let i = 0; i < hashSize; i++) {
             if (labelHash[i] !== dataBlock[i]) {
@@ -1228,7 +1200,7 @@ class RsaOaepProvider extends core__namespace.RsaOaepProvider {
             counter[2] = (i >>> 8) & 255;
             counter[3] = i & 255;
             const submask = mask.subarray(i * hashSize);
-            let chunk = crypto__default['default'].createHash(algorithm.name.replace("-", ""))
+            let chunk = crypto__default.createHash(algorithm.name.replace("-", ""))
                 .update(seed)
                 .update(counter)
                 .digest();
@@ -1241,7 +1213,7 @@ class RsaOaepProvider extends core__namespace.RsaOaepProvider {
     }
 }
 
-class RsaEsProvider extends core__namespace.ProviderCrypto {
+class RsaEsProvider extends core.ProviderCrypto {
     constructor() {
         super(...arguments);
         this.name = "RSAES-PKCS1-v1_5";
@@ -1265,7 +1237,7 @@ class RsaEsProvider extends core__namespace.ProviderCrypto {
         if (!(algorithm.publicExponent && algorithm.publicExponent instanceof Uint8Array)) {
             throw new TypeError("publicExponent: Missing or not a Uint8Array");
         }
-        const publicExponent = pvtsutils.Convert.ToBase64(algorithm.publicExponent);
+        const publicExponent = Convert.ToBase64(algorithm.publicExponent);
         if (!(publicExponent === "Aw==" || publicExponent === "AQAB")) {
             throw new TypeError("publicExponent: Must be [3] or [1,0,1]");
         }
@@ -1281,12 +1253,12 @@ class RsaEsProvider extends core__namespace.ProviderCrypto {
     }
     async onEncrypt(algorithm, key, data) {
         const options = this.toCryptoOptions(key);
-        const enc = crypto__namespace.publicEncrypt(options, new Uint8Array(data));
+        const enc = crypto.publicEncrypt(options, new Uint8Array(data));
         return new Uint8Array(enc).buffer;
     }
     async onDecrypt(algorithm, key, data) {
         const options = this.toCryptoOptions(key);
-        const dec = crypto__namespace.privateDecrypt(options, new Uint8Array(data));
+        const dec = crypto.privateDecrypt(options, new Uint8Array(data));
         return new Uint8Array(dec).buffer;
     }
     async onExportKey(format, key) {
@@ -1307,7 +1279,7 @@ class RsaEsProvider extends core__namespace.ProviderCrypto {
         const type = key.type.toUpperCase();
         return {
             key: `-----BEGIN ${type} KEY-----\n${getCryptoKey(key).data.toString("base64")}\n-----END ${type} KEY-----`,
-            padding: crypto__namespace.constants.RSA_PKCS1_PADDING,
+            padding: crypto.constants.RSA_PKCS1_PADDING,
         };
     }
 }
@@ -1325,7 +1297,7 @@ const namedOIDs = {
 function getOidByNamedCurve$1(namedCurve) {
     const oid = namedOIDs[namedCurve];
     if (!oid) {
-        throw new core__namespace.OperationError(`Cannot convert WebCrypto named curve '${namedCurve}' to OID`);
+        throw new core.OperationError(`Cannot convert WebCrypto named curve '${namedCurve}' to OID`);
     }
     return oid;
 }
@@ -1336,8 +1308,8 @@ class EcPrivateKey extends AsymmetricKey {
         this.type = "private";
     }
     getKey() {
-        const keyInfo = asn1Schema.AsnParser.parse(this.data, core__namespace.asn1.PrivateKeyInfo);
-        return asn1Schema.AsnParser.parse(keyInfo.privateKey, core__namespace.asn1.EcPrivateKey);
+        const keyInfo = AsnParser.parse(this.data, core.asn1.PrivateKeyInfo);
+        return AsnParser.parse(keyInfo.privateKey, core.asn1.EcPrivateKey);
     }
     toJSON() {
         const key = this.getKey();
@@ -1347,18 +1319,18 @@ class EcPrivateKey extends AsymmetricKey {
             key_ops: this.usages,
             ext: this.extractable,
         };
-        return Object.assign(json, jsonSchema.JsonSerializer.toJSON(key));
+        return Object.assign(json, JsonSerializer.toJSON(key));
     }
     fromJSON(json) {
         if (!json.crv) {
-            throw new core__namespace.OperationError(`Cannot get named curve from JWK. Property 'crv' is required`);
+            throw new core.OperationError(`Cannot get named curve from JWK. Property 'crv' is required`);
         }
-        const keyInfo = new core__namespace.asn1.PrivateKeyInfo();
+        const keyInfo = new core.asn1.PrivateKeyInfo();
         keyInfo.privateKeyAlgorithm.algorithm = "1.2.840.10045.2.1";
-        keyInfo.privateKeyAlgorithm.parameters = asn1Schema.AsnSerializer.serialize(new core__namespace.asn1.ObjectIdentifier(getOidByNamedCurve$1(json.crv)));
-        const key = jsonSchema.JsonParser.fromJSON(json, { targetSchema: core__namespace.asn1.EcPrivateKey });
-        keyInfo.privateKey = asn1Schema.AsnSerializer.serialize(key);
-        this.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        keyInfo.privateKeyAlgorithm.parameters = AsnSerializer.serialize(new core.asn1.ObjectIdentifier(getOidByNamedCurve$1(json.crv)));
+        const key = JsonParser.fromJSON(json, { targetSchema: core.asn1.EcPrivateKey });
+        keyInfo.privateKey = AsnSerializer.serialize(key);
+        this.data = Buffer.from(AsnSerializer.serialize(keyInfo));
         return this;
     }
 }
@@ -1369,8 +1341,8 @@ class EcPublicKey extends AsymmetricKey {
         this.type = "public";
     }
     getKey() {
-        const keyInfo = asn1Schema.AsnParser.parse(this.data, core__namespace.asn1.PublicKeyInfo);
-        return new core__namespace.asn1.EcPublicKey(keyInfo.publicKey);
+        const keyInfo = AsnParser.parse(this.data, core.asn1.PublicKeyInfo);
+        return new core.asn1.EcPublicKey(keyInfo.publicKey);
     }
     toJSON() {
         const key = this.getKey();
@@ -1380,18 +1352,18 @@ class EcPublicKey extends AsymmetricKey {
             key_ops: this.usages,
             ext: this.extractable,
         };
-        return Object.assign(json, jsonSchema.JsonSerializer.toJSON(key));
+        return Object.assign(json, JsonSerializer.toJSON(key));
     }
     fromJSON(json) {
         if (!json.crv) {
-            throw new core__namespace.OperationError(`Cannot get named curve from JWK. Property 'crv' is required`);
+            throw new core.OperationError(`Cannot get named curve from JWK. Property 'crv' is required`);
         }
-        const key = jsonSchema.JsonParser.fromJSON(json, { targetSchema: core__namespace.asn1.EcPublicKey });
-        const keyInfo = new core__namespace.asn1.PublicKeyInfo();
+        const key = JsonParser.fromJSON(json, { targetSchema: core.asn1.EcPublicKey });
+        const keyInfo = new core.asn1.PublicKeyInfo();
         keyInfo.publicKeyAlgorithm.algorithm = "1.2.840.10045.2.1";
-        keyInfo.publicKeyAlgorithm.parameters = asn1Schema.AsnSerializer.serialize(new core__namespace.asn1.ObjectIdentifier(getOidByNamedCurve$1(json.crv)));
-        keyInfo.publicKey = asn1Schema.AsnSerializer.toASN(key).valueHex;
-        this.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        keyInfo.publicKeyAlgorithm.parameters = AsnSerializer.serialize(new core.asn1.ObjectIdentifier(getOidByNamedCurve$1(json.crv)));
+        keyInfo.publicKey = AsnSerializer.toASN(key).valueHex;
+        this.data = Buffer.from(AsnSerializer.serialize(keyInfo));
         return this;
     }
 }
@@ -1406,7 +1378,7 @@ class EcCrypto {
         publicKey.algorithm = algorithm;
         publicKey.extractable = true;
         publicKey.usages = keyUsages.filter((usage) => this.publicKeyUsages.indexOf(usage) !== -1);
-        const keys = crypto__default['default'].generateKeyPairSync("ec", {
+        const keys = crypto__default.generateKeyPairSync("ec", {
             namedCurve: this.getOpenSSLNamedCurve(algorithm.namedCurve),
             publicKeyEncoding: {
                 format: "der",
@@ -1427,7 +1399,7 @@ class EcCrypto {
     }
     static async sign(algorithm, key, data) {
         const cryptoAlg = algorithm.hash.name.replace("-", "");
-        const signer = crypto__default['default'].createSign(cryptoAlg);
+        const signer = crypto__default.createSign(cryptoAlg);
         signer.update(Buffer.from(data));
         if (!key.pem) {
             key.pem = `-----BEGIN PRIVATE KEY-----\n${key.data.toString("base64")}\n-----END PRIVATE KEY-----`;
@@ -1436,7 +1408,7 @@ class EcCrypto {
             key: key.pem,
         };
         const signature = signer.sign(options);
-        const ecSignature = asn1Schema.AsnParser.parse(signature, core__namespace.asn1.EcDsaSignature);
+        const ecSignature = AsnParser.parse(signature, core.asn1.EcDsaSignature);
         const pointSize = this.getPointSize(key.algorithm.namedCurve);
         const r = this.addPadding(pointSize, Buffer.from(ecSignature.r));
         const s = this.addPadding(pointSize, Buffer.from(ecSignature.s));
@@ -1445,7 +1417,7 @@ class EcCrypto {
     }
     static async verify(algorithm, key, signature, data) {
         const cryptoAlg = algorithm.hash.name.replace("-", "");
-        const signer = crypto__default['default'].createVerify(cryptoAlg);
+        const signer = crypto__default.createVerify(cryptoAlg);
         signer.update(Buffer.from(data));
         if (!key.pem) {
             key.pem = `-----BEGIN PUBLIC KEY-----\n${key.data.toString("base64")}\n-----END PUBLIC KEY-----`;
@@ -1453,37 +1425,37 @@ class EcCrypto {
         const options = {
             key: key.pem,
         };
-        const ecSignature = new core__namespace.asn1.EcDsaSignature();
+        const ecSignature = new core.asn1.EcDsaSignature();
         const pointSize = this.getPointSize(key.algorithm.namedCurve);
         ecSignature.r = this.removePadding(signature.slice(0, pointSize));
         ecSignature.s = this.removePadding(signature.slice(pointSize, pointSize + pointSize));
-        const ecSignatureRaw = Buffer.from(asn1Schema.AsnSerializer.serialize(ecSignature));
+        const ecSignatureRaw = Buffer.from(AsnSerializer.serialize(ecSignature));
         const ok = signer.verify(options, ecSignatureRaw);
         return ok;
     }
     static async deriveBits(algorithm, baseKey, length) {
         const cryptoAlg = this.getOpenSSLNamedCurve(baseKey.algorithm.namedCurve);
-        const ecdh = crypto__default['default'].createECDH(cryptoAlg);
-        const asnPrivateKey = asn1Schema.AsnParser.parse(baseKey.data, core__namespace.asn1.PrivateKeyInfo);
-        const asnEcPrivateKey = asn1Schema.AsnParser.parse(asnPrivateKey.privateKey, core__namespace.asn1.EcPrivateKey);
+        const ecdh = crypto__default.createECDH(cryptoAlg);
+        const asnPrivateKey = AsnParser.parse(baseKey.data, core.asn1.PrivateKeyInfo);
+        const asnEcPrivateKey = AsnParser.parse(asnPrivateKey.privateKey, core.asn1.EcPrivateKey);
         ecdh.setPrivateKey(Buffer.from(asnEcPrivateKey.privateKey));
-        const asnPublicKey = asn1Schema.AsnParser.parse(algorithm.public.data, core__namespace.asn1.PublicKeyInfo);
+        const asnPublicKey = AsnParser.parse(algorithm.public.data, core.asn1.PublicKeyInfo);
         const bits = ecdh.computeSecret(Buffer.from(asnPublicKey.publicKey));
         return new Uint8Array(bits).buffer.slice(0, length >> 3);
     }
     static async exportKey(format, key) {
         switch (format.toLowerCase()) {
             case "jwk":
-                return jsonSchema.JsonSerializer.toJSON(key);
+                return JsonSerializer.toJSON(key);
             case "pkcs8":
             case "spki":
                 return new Uint8Array(key.data).buffer;
             case "raw": {
-                const publicKeyInfo = asn1Schema.AsnParser.parse(key.data, core__namespace.asn1.PublicKeyInfo);
+                const publicKeyInfo = AsnParser.parse(key.data, core.asn1.PublicKeyInfo);
                 return publicKeyInfo.publicKey;
             }
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk', 'raw', pkcs8' or 'spki'");
+                throw new core.OperationError("format: Must be 'jwk', 'raw', pkcs8' or 'spki'");
         }
     }
     static async importKey(format, keyData, algorithm, extractable, keyUsages) {
@@ -1491,69 +1463,69 @@ class EcCrypto {
             case "jwk": {
                 const jwk = keyData;
                 if (jwk.d) {
-                    const asnKey = jsonSchema.JsonParser.fromJSON(keyData, { targetSchema: core__namespace.asn1.EcPrivateKey });
+                    const asnKey = JsonParser.fromJSON(keyData, { targetSchema: core.asn1.EcPrivateKey });
                     return this.importPrivateKey(asnKey, algorithm, extractable, keyUsages);
                 }
                 else {
-                    const asnKey = jsonSchema.JsonParser.fromJSON(keyData, { targetSchema: core__namespace.asn1.EcPublicKey });
+                    const asnKey = JsonParser.fromJSON(keyData, { targetSchema: core.asn1.EcPublicKey });
                     return this.importPublicKey(asnKey, algorithm, extractable, keyUsages);
                 }
             }
             case "raw": {
-                const asnKey = new core__namespace.asn1.EcPublicKey(keyData);
+                const asnKey = new core.asn1.EcPublicKey(keyData);
                 return this.importPublicKey(asnKey, algorithm, extractable, keyUsages);
             }
             case "spki": {
-                const keyInfo = asn1Schema.AsnParser.parse(new Uint8Array(keyData), core__namespace.asn1.PublicKeyInfo);
-                const asnKey = new core__namespace.asn1.EcPublicKey(keyInfo.publicKey);
+                const keyInfo = AsnParser.parse(new Uint8Array(keyData), core.asn1.PublicKeyInfo);
+                const asnKey = new core.asn1.EcPublicKey(keyInfo.publicKey);
                 this.assertKeyParameters(keyInfo.publicKeyAlgorithm.parameters, algorithm.namedCurve);
                 return this.importPublicKey(asnKey, algorithm, extractable, keyUsages);
             }
             case "pkcs8": {
-                const keyInfo = asn1Schema.AsnParser.parse(new Uint8Array(keyData), core__namespace.asn1.PrivateKeyInfo);
-                const asnKey = asn1Schema.AsnParser.parse(keyInfo.privateKey, core__namespace.asn1.EcPrivateKey);
+                const keyInfo = AsnParser.parse(new Uint8Array(keyData), core.asn1.PrivateKeyInfo);
+                const asnKey = AsnParser.parse(keyInfo.privateKey, core.asn1.EcPrivateKey);
                 this.assertKeyParameters(keyInfo.privateKeyAlgorithm.parameters, algorithm.namedCurve);
                 return this.importPrivateKey(asnKey, algorithm, extractable, keyUsages);
             }
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk', 'raw', 'pkcs8' or 'spki'");
+                throw new core.OperationError("format: Must be 'jwk', 'raw', 'pkcs8' or 'spki'");
         }
     }
     static assertKeyParameters(parameters, namedCurve) {
         if (!parameters) {
-            throw new core__namespace.CryptoError("Key info doesn't have required parameters");
+            throw new core.CryptoError("Key info doesn't have required parameters");
         }
         let namedCurveIdentifier = "";
         try {
-            namedCurveIdentifier = asn1Schema.AsnParser.parse(parameters, core__namespace.asn1.ObjectIdentifier).value;
+            namedCurveIdentifier = AsnParser.parse(parameters, core.asn1.ObjectIdentifier).value;
         }
         catch (e) {
-            throw new core__namespace.CryptoError("Cannot read key info parameters");
+            throw new core.CryptoError("Cannot read key info parameters");
         }
         if (getOidByNamedCurve$1(namedCurve) !== namedCurveIdentifier) {
-            throw new core__namespace.CryptoError("Key info parameter doesn't match to named curve");
+            throw new core.CryptoError("Key info parameter doesn't match to named curve");
         }
     }
     static async importPrivateKey(asnKey, algorithm, extractable, keyUsages) {
-        const keyInfo = new core__namespace.asn1.PrivateKeyInfo();
+        const keyInfo = new core.asn1.PrivateKeyInfo();
         keyInfo.privateKeyAlgorithm.algorithm = "1.2.840.10045.2.1";
-        keyInfo.privateKeyAlgorithm.parameters = asn1Schema.AsnSerializer.serialize(new core__namespace.asn1.ObjectIdentifier(getOidByNamedCurve$1(algorithm.namedCurve)));
-        keyInfo.privateKey = asn1Schema.AsnSerializer.serialize(asnKey);
+        keyInfo.privateKeyAlgorithm.parameters = AsnSerializer.serialize(new core.asn1.ObjectIdentifier(getOidByNamedCurve$1(algorithm.namedCurve)));
+        keyInfo.privateKey = AsnSerializer.serialize(asnKey);
         const key = new EcPrivateKey();
-        key.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        key.data = Buffer.from(AsnSerializer.serialize(keyInfo));
         key.algorithm = Object.assign({}, algorithm);
         key.extractable = extractable;
         key.usages = keyUsages;
         return key;
     }
     static async importPublicKey(asnKey, algorithm, extractable, keyUsages) {
-        const keyInfo = new core__namespace.asn1.PublicKeyInfo();
+        const keyInfo = new core.asn1.PublicKeyInfo();
         keyInfo.publicKeyAlgorithm.algorithm = "1.2.840.10045.2.1";
         const namedCurve = getOidByNamedCurve$1(algorithm.namedCurve);
-        keyInfo.publicKeyAlgorithm.parameters = asn1Schema.AsnSerializer.serialize(new core__namespace.asn1.ObjectIdentifier(namedCurve));
+        keyInfo.publicKeyAlgorithm.parameters = AsnSerializer.serialize(new core.asn1.ObjectIdentifier(namedCurve));
         keyInfo.publicKey = asnKey.value;
         const key = new EcPublicKey();
-        key.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        key.data = Buffer.from(AsnSerializer.serialize(keyInfo));
         key.algorithm = Object.assign({}, algorithm);
         key.extractable = extractable;
         key.usages = keyUsages;
@@ -1570,7 +1542,7 @@ class EcCrypto {
             case "P-521":
                 return "secp521r1";
             default:
-                throw new core__namespace.OperationError(`Cannot convert WebCrypto named curve to NodeJs. Unknown name '${curve}'`);
+                throw new core.OperationError(`Cannot convert WebCrypto named curve to NodeJs. Unknown name '${curve}'`);
         }
     }
     static getPointSize(namedCurve) {
@@ -1604,7 +1576,7 @@ class EcCrypto {
 EcCrypto.publicKeyUsages = ["verify"];
 EcCrypto.privateKeyUsages = ["sign", "deriveKey", "deriveBits"];
 
-class EcdsaProvider extends core__namespace.EcdsaProvider {
+class EcdsaProvider extends core.EcdsaProvider {
     constructor() {
         super(...arguments);
         this.namedCurves = ["P-256", "P-384", "P-521", "K-256"];
@@ -1641,7 +1613,7 @@ class EcdsaProvider extends core__namespace.EcdsaProvider {
     }
 }
 
-class EcdhProvider extends core__namespace.EcdhProvider {
+class EcdhProvider extends core.EcdhProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const keys = await EcCrypto.generateKey({
             ...algorithm,
@@ -1673,19 +1645,19 @@ class EcdhProvider extends core__namespace.EcdhProvider {
 }
 
 const edOIDs = {
-    [core__namespace.asn1.idEd448]: "Ed448",
-    "ed448": core__namespace.asn1.idEd448,
-    [core__namespace.asn1.idX448]: "X448",
-    "x448": core__namespace.asn1.idX448,
-    [core__namespace.asn1.idEd25519]: "Ed25519",
-    "ed25519": core__namespace.asn1.idEd25519,
-    [core__namespace.asn1.idX25519]: "X25519",
-    "x25519": core__namespace.asn1.idX25519,
+    [core.asn1.idEd448]: "Ed448",
+    "ed448": core.asn1.idEd448,
+    [core.asn1.idX448]: "X448",
+    "x448": core.asn1.idX448,
+    [core.asn1.idEd25519]: "Ed25519",
+    "ed25519": core.asn1.idEd25519,
+    [core.asn1.idX25519]: "X25519",
+    "x25519": core.asn1.idX25519,
 };
 function getOidByNamedCurve(namedCurve) {
     const oid = edOIDs[namedCurve.toLowerCase()];
     if (!oid) {
-        throw new core__namespace.OperationError(`Cannot convert WebCrypto named curve '${namedCurve}' to OID`);
+        throw new core.OperationError(`Cannot convert WebCrypto named curve '${namedCurve}' to OID`);
     }
     return oid;
 }
@@ -1696,8 +1668,8 @@ class EdPrivateKey extends AsymmetricKey {
         this.type = "private";
     }
     getKey() {
-        const keyInfo = asn1Schema.AsnParser.parse(this.data, core__namespace.asn1.PrivateKeyInfo);
-        return asn1Schema.AsnParser.parse(keyInfo.privateKey, core__namespace.asn1.CurvePrivateKey);
+        const keyInfo = AsnParser.parse(this.data, core.asn1.PrivateKeyInfo);
+        return AsnParser.parse(keyInfo.privateKey, core.asn1.CurvePrivateKey);
     }
     toJSON() {
         const key = this.getKey();
@@ -1707,17 +1679,17 @@ class EdPrivateKey extends AsymmetricKey {
             key_ops: this.usages,
             ext: this.extractable,
         };
-        return Object.assign(json, jsonSchema.JsonSerializer.toJSON(key));
+        return Object.assign(json, JsonSerializer.toJSON(key));
     }
     fromJSON(json) {
         if (!json.crv) {
-            throw new core__namespace.OperationError(`Cannot get named curve from JWK. Property 'crv' is required`);
+            throw new core.OperationError(`Cannot get named curve from JWK. Property 'crv' is required`);
         }
-        const keyInfo = new core__namespace.asn1.PrivateKeyInfo();
+        const keyInfo = new core.asn1.PrivateKeyInfo();
         keyInfo.privateKeyAlgorithm.algorithm = getOidByNamedCurve(json.crv);
-        const key = jsonSchema.JsonParser.fromJSON(json, { targetSchema: core__namespace.asn1.CurvePrivateKey });
-        keyInfo.privateKey = asn1Schema.AsnSerializer.serialize(key);
-        this.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        const key = JsonParser.fromJSON(json, { targetSchema: core.asn1.CurvePrivateKey });
+        keyInfo.privateKey = AsnSerializer.serialize(key);
+        this.data = Buffer.from(AsnSerializer.serialize(keyInfo));
         return this;
     }
 }
@@ -1728,7 +1700,7 @@ class EdPublicKey extends AsymmetricKey {
         this.type = "public";
     }
     getKey() {
-        const keyInfo = asn1Schema.AsnParser.parse(this.data, core__namespace.asn1.PublicKeyInfo);
+        const keyInfo = AsnParser.parse(this.data, core.asn1.PublicKeyInfo);
         return keyInfo.publicKey;
     }
     toJSON() {
@@ -1740,20 +1712,20 @@ class EdPublicKey extends AsymmetricKey {
             ext: this.extractable,
         };
         return Object.assign(json, {
-            x: pvtsutils.Convert.ToBase64Url(key)
+            x: Convert.ToBase64Url(key)
         });
     }
     fromJSON(json) {
         if (!json.crv) {
-            throw new core__namespace.OperationError(`Cannot get named curve from JWK. Property 'crv' is required`);
+            throw new core.OperationError(`Cannot get named curve from JWK. Property 'crv' is required`);
         }
         if (!json.x) {
-            throw new core__namespace.OperationError(`Cannot get property from JWK. Property 'x' is required`);
+            throw new core.OperationError(`Cannot get property from JWK. Property 'x' is required`);
         }
-        const keyInfo = new core__namespace.asn1.PublicKeyInfo();
+        const keyInfo = new core.asn1.PublicKeyInfo();
         keyInfo.publicKeyAlgorithm.algorithm = getOidByNamedCurve(json.crv);
-        keyInfo.publicKey = pvtsutils.Convert.FromBase64Url(json.x);
-        this.data = Buffer.from(asn1Schema.AsnSerializer.serialize(keyInfo));
+        keyInfo.publicKey = Convert.FromBase64Url(json.x);
+        this.data = Buffer.from(AsnSerializer.serialize(keyInfo));
         return this;
     }
 }
@@ -1769,7 +1741,7 @@ class EdCrypto {
         publicKey.extractable = true;
         publicKey.usages = keyUsages.filter((usage) => this.publicKeyUsages.indexOf(usage) !== -1);
         const type = algorithm.namedCurve.toLowerCase();
-        const keys = crypto__default['default'].generateKeyPairSync(type, {
+        const keys = crypto__default.generateKeyPairSync(type, {
             publicKeyEncoding: {
                 format: "der",
                 type: "spki",
@@ -1794,8 +1766,8 @@ class EdCrypto {
         const options = {
             key: key.pem,
         };
-        const signature = crypto__default['default'].sign(null, Buffer.from(data), options);
-        return core__namespace.BufferSourceConverter.toArrayBuffer(signature);
+        const signature = crypto__default.sign(null, Buffer.from(data), options);
+        return core.BufferSourceConverter.toArrayBuffer(signature);
     }
     static async verify(algorithm, key, signature, data) {
         if (!key.pem) {
@@ -1804,21 +1776,21 @@ class EdCrypto {
         const options = {
             key: key.pem,
         };
-        const ok = crypto__default['default'].verify(null, Buffer.from(data), options, Buffer.from(signature));
+        const ok = crypto__default.verify(null, Buffer.from(data), options, Buffer.from(signature));
         return ok;
     }
     static async deriveBits(algorithm, baseKey, length) {
-        const publicKey = crypto__default['default'].createPublicKey({
+        const publicKey = crypto__default.createPublicKey({
             key: algorithm.public.data,
             format: "der",
             type: "spki",
         });
-        const privateKey = crypto__default['default'].createPrivateKey({
+        const privateKey = crypto__default.createPrivateKey({
             key: baseKey.data,
             format: "der",
             type: "pkcs8",
         });
-        const bits = crypto__default['default'].diffieHellman({
+        const bits = crypto__default.diffieHellman({
             publicKey,
             privateKey,
         });
@@ -1827,16 +1799,16 @@ class EdCrypto {
     static async exportKey(format, key) {
         switch (format.toLowerCase()) {
             case "jwk":
-                return jsonSchema.JsonSerializer.toJSON(key);
+                return JsonSerializer.toJSON(key);
             case "pkcs8":
             case "spki":
                 return new Uint8Array(key.data).buffer;
             case "raw": {
-                const publicKeyInfo = asn1Schema.AsnParser.parse(key.data, core__namespace.asn1.PublicKeyInfo);
+                const publicKeyInfo = AsnParser.parse(key.data, core.asn1.PublicKeyInfo);
                 return publicKeyInfo.publicKey;
             }
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk', 'raw', pkcs8' or 'spki'");
+                throw new core.OperationError("format: Must be 'jwk', 'raw', pkcs8' or 'spki'");
         }
     }
     static async importKey(format, keyData, algorithm, extractable, keyUsages) {
@@ -1844,37 +1816,37 @@ class EdCrypto {
             case "jwk": {
                 const jwk = keyData;
                 if (jwk.d) {
-                    const asnKey = jsonSchema.JsonParser.fromJSON(keyData, { targetSchema: core__namespace.asn1.CurvePrivateKey });
+                    const asnKey = JsonParser.fromJSON(keyData, { targetSchema: core.asn1.CurvePrivateKey });
                     return this.importPrivateKey(asnKey, algorithm, extractable, keyUsages);
                 }
                 else {
                     if (!jwk.x) {
                         throw new TypeError("keyData: Cannot get required 'x' filed");
                     }
-                    return this.importPublicKey(pvtsutils.Convert.FromBase64Url(jwk.x), algorithm, extractable, keyUsages);
+                    return this.importPublicKey(Convert.FromBase64Url(jwk.x), algorithm, extractable, keyUsages);
                 }
             }
             case "raw": {
                 return this.importPublicKey(keyData, algorithm, extractable, keyUsages);
             }
             case "spki": {
-                const keyInfo = asn1Schema.AsnParser.parse(new Uint8Array(keyData), core__namespace.asn1.PublicKeyInfo);
+                const keyInfo = AsnParser.parse(new Uint8Array(keyData), core.asn1.PublicKeyInfo);
                 return this.importPublicKey(keyInfo.publicKey, algorithm, extractable, keyUsages);
             }
             case "pkcs8": {
-                const keyInfo = asn1Schema.AsnParser.parse(new Uint8Array(keyData), core__namespace.asn1.PrivateKeyInfo);
-                const asnKey = asn1Schema.AsnParser.parse(keyInfo.privateKey, core__namespace.asn1.CurvePrivateKey);
+                const keyInfo = AsnParser.parse(new Uint8Array(keyData), core.asn1.PrivateKeyInfo);
+                const asnKey = AsnParser.parse(keyInfo.privateKey, core.asn1.CurvePrivateKey);
                 return this.importPrivateKey(asnKey, algorithm, extractable, keyUsages);
             }
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk', 'raw', 'pkcs8' or 'spki'");
+                throw new core.OperationError("format: Must be 'jwk', 'raw', 'pkcs8' or 'spki'");
         }
     }
     static importPrivateKey(asnKey, algorithm, extractable, keyUsages) {
         const key = new EdPrivateKey();
         key.fromJSON({
             crv: algorithm.namedCurve,
-            d: pvtsutils.Convert.ToBase64Url(asnKey.d),
+            d: Convert.ToBase64Url(asnKey.d),
         });
         key.algorithm = Object.assign({}, algorithm);
         key.extractable = extractable;
@@ -1885,7 +1857,7 @@ class EdCrypto {
         const key = new EdPublicKey();
         key.fromJSON({
             crv: algorithm.namedCurve,
-            x: pvtsutils.Convert.ToBase64Url(asnKey),
+            x: Convert.ToBase64Url(asnKey),
         });
         key.algorithm = Object.assign({}, algorithm);
         key.extractable = extractable;
@@ -1896,7 +1868,7 @@ class EdCrypto {
 EdCrypto.publicKeyUsages = ["verify"];
 EdCrypto.privateKeyUsages = ["sign", "deriveKey", "deriveBits"];
 
-class EdDsaProvider extends core__namespace.EdDsaProvider {
+class EdDsaProvider extends core.EdDsaProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const keys = await EdCrypto.generateKey({
             name: this.name,
@@ -1922,7 +1894,7 @@ class EdDsaProvider extends core__namespace.EdDsaProvider {
     }
 }
 
-class EcdhEsProvider extends core__namespace.EcdhEsProvider {
+class EcdhEsProvider extends core.EcdhEsProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const keys = await EdCrypto.generateKey({
             name: this.name,
@@ -1946,7 +1918,7 @@ class EcdhEsProvider extends core__namespace.EcdhEsProvider {
     }
 }
 
-class Sha1Provider extends core__namespace.ProviderCrypto {
+class Sha1Provider extends core.ProviderCrypto {
     constructor() {
         super(...arguments);
         this.name = "SHA-1";
@@ -1957,7 +1929,7 @@ class Sha1Provider extends core__namespace.ProviderCrypto {
     }
 }
 
-class Sha256Provider extends core__namespace.ProviderCrypto {
+class Sha256Provider extends core.ProviderCrypto {
     constructor() {
         super(...arguments);
         this.name = "SHA-256";
@@ -1968,7 +1940,7 @@ class Sha256Provider extends core__namespace.ProviderCrypto {
     }
 }
 
-class Sha384Provider extends core__namespace.ProviderCrypto {
+class Sha384Provider extends core.ProviderCrypto {
     constructor() {
         super(...arguments);
         this.name = "SHA-384";
@@ -1979,7 +1951,7 @@ class Sha384Provider extends core__namespace.ProviderCrypto {
     }
 }
 
-class Sha512Provider extends core__namespace.ProviderCrypto {
+class Sha512Provider extends core.ProviderCrypto {
     constructor() {
         super(...arguments);
         this.name = "SHA-512";
@@ -1993,12 +1965,12 @@ class Sha512Provider extends core__namespace.ProviderCrypto {
 class PbkdfCryptoKey extends CryptoKey {
 }
 
-class Pbkdf2Provider extends core__namespace.Pbkdf2Provider {
+class Pbkdf2Provider extends core.Pbkdf2Provider {
     async onDeriveBits(algorithm, baseKey, length) {
         return new Promise((resolve, reject) => {
-            const salt = core__namespace.BufferSourceConverter.toArrayBuffer(algorithm.salt);
+            const salt = core.BufferSourceConverter.toArrayBuffer(algorithm.salt);
             const hash = algorithm.hash.name.replace("-", "");
-            crypto__default['default'].pbkdf2(getCryptoKey(baseKey).data, Buffer.from(salt), algorithm.iterations, length >> 3, hash, (err, derivedBits) => {
+            crypto__default.pbkdf2(getCryptoKey(baseKey).data, Buffer.from(salt), algorithm.iterations, length >> 3, hash, (err, derivedBits) => {
                 if (err) {
                     reject(err);
                 }
@@ -2017,7 +1989,7 @@ class Pbkdf2Provider extends core__namespace.Pbkdf2Provider {
             key.usages = keyUsages;
             return setCryptoKey(key);
         }
-        throw new core__namespace.OperationError("format: Must be 'raw'");
+        throw new core.OperationError("format: Must be 'raw'");
     }
     checkCryptoKey(key, keyUsage) {
         super.checkCryptoKey(key, keyUsage);
@@ -2035,11 +2007,11 @@ class HmacCryptoKey extends CryptoKey {
     set alg(value) {
     }
 }
-tslib.__decorate([
-    jsonSchema.JsonProp({ name: "k", converter: JsonBase64UrlConverter })
+__decorate([
+    JsonProp({ name: "k", converter: JsonBase64UrlConverter })
 ], HmacCryptoKey.prototype, "data", void 0);
 
-class HmacProvider extends core__namespace.HmacProvider {
+class HmacProvider extends core.HmacProvider {
     async onGenerateKey(algorithm, extractable, keyUsages) {
         const length = (algorithm.length || this.getDefaultLength(algorithm.hash.name)) >> 3 << 3;
         const key = new HmacCryptoKey();
@@ -2050,18 +2022,18 @@ class HmacProvider extends core__namespace.HmacProvider {
         };
         key.extractable = extractable;
         key.usages = keyUsages;
-        key.data = crypto__default['default'].randomBytes(length >> 3);
+        key.data = crypto__default.randomBytes(length >> 3);
         return setCryptoKey(key);
     }
     async onSign(algorithm, key, data) {
         const hash = key.algorithm.hash.name.replace("-", "");
-        const hmac = crypto__default['default'].createHmac(hash, getCryptoKey(key).data)
+        const hmac = crypto__default.createHmac(hash, getCryptoKey(key).data)
             .update(Buffer.from(data)).digest();
         return new Uint8Array(hmac).buffer;
     }
     async onVerify(algorithm, key, signature, data) {
         const hash = key.algorithm.hash.name.replace("-", "");
-        const hmac = crypto__default['default'].createHmac(hash, getCryptoKey(key).data)
+        const hmac = crypto__default.createHmac(hash, getCryptoKey(key).data)
             .update(Buffer.from(data)).digest();
         return hmac.compare(Buffer.from(signature)) === 0;
     }
@@ -2069,14 +2041,14 @@ class HmacProvider extends core__namespace.HmacProvider {
         let key;
         switch (format.toLowerCase()) {
             case "jwk":
-                key = jsonSchema.JsonParser.fromJSON(keyData, { targetSchema: HmacCryptoKey });
+                key = JsonParser.fromJSON(keyData, { targetSchema: HmacCryptoKey });
                 break;
             case "raw":
                 key = new HmacCryptoKey();
                 key.data = Buffer.from(keyData);
                 break;
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk' or 'raw'");
+                throw new core.OperationError("format: Must be 'jwk' or 'raw'");
         }
         key.algorithm = {
             hash: { name: algorithm.hash.name },
@@ -2090,11 +2062,11 @@ class HmacProvider extends core__namespace.HmacProvider {
     async onExportKey(format, key) {
         switch (format.toLowerCase()) {
             case "jwk":
-                return jsonSchema.JsonSerializer.toJSON(getCryptoKey(key));
+                return JsonSerializer.toJSON(getCryptoKey(key));
             case "raw":
                 return new Uint8Array(getCryptoKey(key).data).buffer;
             default:
-                throw new core__namespace.OperationError("format: Must be 'jwk' or 'raw'");
+                throw new core.OperationError("format: Must be 'jwk' or 'raw'");
         }
     }
     checkCryptoKey(key, keyUsage) {
@@ -2108,10 +2080,10 @@ class HmacProvider extends core__namespace.HmacProvider {
 class HkdfCryptoKey extends CryptoKey {
 }
 
-class HkdfProvider extends core__namespace.HkdfProvider {
+class HkdfProvider extends core.HkdfProvider {
     async onImportKey(format, keyData, algorithm, extractable, keyUsages) {
         if (format.toLowerCase() !== "raw") {
-            throw new core__namespace.OperationError("Operation not supported");
+            throw new core.OperationError("Operation not supported");
         }
         const key = new HkdfCryptoKey();
         key.data = Buffer.from(keyData);
@@ -2122,16 +2094,16 @@ class HkdfProvider extends core__namespace.HkdfProvider {
     }
     async onDeriveBits(params, baseKey, length) {
         const hash = params.hash.name.replace("-", "");
-        const hashLength = crypto__default['default'].createHash(hash).digest().length;
+        const hashLength = crypto__default.createHash(hash).digest().length;
         const byteLength = length / 8;
-        const info = core.BufferSourceConverter.toUint8Array(params.info);
-        const PRK = crypto__default['default'].createHmac(hash, core.BufferSourceConverter.toUint8Array(params.salt))
-            .update(core.BufferSourceConverter.toUint8Array(getCryptoKey(baseKey).data))
+        const info = BufferSourceConverter.toUint8Array(params.info);
+        const PRK = crypto__default.createHmac(hash, BufferSourceConverter.toUint8Array(params.salt))
+            .update(BufferSourceConverter.toUint8Array(getCryptoKey(baseKey).data))
             .digest();
         const blocks = [Buffer.alloc(0)];
         const blockCount = Math.ceil(byteLength / hashLength) + 1;
         for (let i = 1; i < blockCount; ++i) {
-            blocks.push(crypto__default['default'].createHmac(hash, PRK)
+            blocks.push(crypto__default.createHmac(hash, PRK)
                 .update(Buffer.concat([blocks[i - 1], info, Buffer.from([i])]))
                 .digest());
         }
@@ -2145,7 +2117,7 @@ class HkdfProvider extends core__namespace.HkdfProvider {
     }
 }
 
-class SubtleCrypto extends core__namespace.SubtleCrypto {
+class SubtleCrypto extends core.SubtleCrypto {
     constructor() {
         var _a;
         super();
@@ -2170,7 +2142,7 @@ class SubtleCrypto extends core__namespace.SubtleCrypto {
         this.providers.set(new Pbkdf2Provider());
         this.providers.set(new HmacProvider());
         this.providers.set(new HkdfProvider());
-        const nodeMajorVersion = (_a = /^v(\d+)/.exec(process__namespace.version)) === null || _a === void 0 ? void 0 : _a[1];
+        const nodeMajorVersion = (_a = /^v(\d+)/.exec(process.version)) === null || _a === void 0 ? void 0 : _a[1];
         if (nodeMajorVersion && parseInt(nodeMajorVersion, 10) >= 14) {
             this.providers.set(new EdDsaProvider());
             this.providers.set(new EcdhEsProvider());
@@ -2178,58 +2150,16 @@ class SubtleCrypto extends core__namespace.SubtleCrypto {
     }
 }
 
-class Crypto extends core__namespace.Crypto {
+class Crypto extends core.Crypto {
     constructor() {
         super(...arguments);
         this.subtle = new SubtleCrypto();
     }
     getRandomValues(array) {
         const buffer = Buffer.from(array.buffer);
-        crypto__default['default'].randomFillSync(buffer);
+        crypto__default.randomFillSync(buffer);
         return array;
     }
 }
 
-Object.defineProperty(exports, 'CryptoKey', {
-  enumerable: true,
-  get: function () {
-    return core.CryptoKey;
-  }
-});
-exports.AesCbcProvider = AesCbcProvider;
-exports.AesCmacProvider = AesCmacProvider;
-exports.AesCryptoKey = AesCryptoKey;
-exports.AesCtrProvider = AesCtrProvider;
-exports.AesEcbProvider = AesEcbProvider;
-exports.AesGcmProvider = AesGcmProvider;
-exports.AesKwProvider = AesKwProvider;
-exports.AsymmetricKey = AsymmetricKey;
-exports.Crypto = Crypto;
-exports.DesCbcProvider = DesCbcProvider;
-exports.DesCryptoKey = DesCryptoKey;
-exports.DesEde3CbcProvider = DesEde3CbcProvider;
-exports.EcPrivateKey = EcPrivateKey;
-exports.EcPublicKey = EcPublicKey;
-exports.EcdhEsProvider = EcdhEsProvider;
-exports.EcdhProvider = EcdhProvider;
-exports.EcdsaProvider = EcdsaProvider;
-exports.EdDsaProvider = EdDsaProvider;
-exports.EdPrivateKey = EdPrivateKey;
-exports.EdPublicKey = EdPublicKey;
-exports.HkdfCryptoKey = HkdfCryptoKey;
-exports.HkdfProvider = HkdfProvider;
-exports.HmacCryptoKey = HmacCryptoKey;
-exports.HmacProvider = HmacProvider;
-exports.Pbkdf2Provider = Pbkdf2Provider;
-exports.PbkdfCryptoKey = PbkdfCryptoKey;
-exports.RsaEsProvider = RsaEsProvider;
-exports.RsaOaepProvider = RsaOaepProvider;
-exports.RsaPrivateKey = RsaPrivateKey;
-exports.RsaPssProvider = RsaPssProvider;
-exports.RsaPublicKey = RsaPublicKey;
-exports.RsaSsaProvider = RsaSsaProvider;
-exports.Sha1Provider = Sha1Provider;
-exports.Sha256Provider = Sha256Provider;
-exports.Sha384Provider = Sha384Provider;
-exports.Sha512Provider = Sha512Provider;
-exports.SymmetricKey = SymmetricKey;
+export { AesCbcProvider, AesCmacProvider, AesCryptoKey, AesCtrProvider, AesEcbProvider, AesGcmProvider, AesKwProvider, AsymmetricKey, Crypto, DesCbcProvider, DesCryptoKey, DesEde3CbcProvider, EcPrivateKey, EcPublicKey, EcdhEsProvider, EcdhProvider, EcdsaProvider, EdDsaProvider, EdPrivateKey, EdPublicKey, HkdfCryptoKey, HkdfProvider, HmacCryptoKey, HmacProvider, Pbkdf2Provider, PbkdfCryptoKey, RsaEsProvider, RsaOaepProvider, RsaPrivateKey, RsaPssProvider, RsaPublicKey, RsaSsaProvider, Sha1Provider, Sha256Provider, Sha384Provider, Sha512Provider, SymmetricKey };
