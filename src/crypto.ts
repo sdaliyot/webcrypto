@@ -2,6 +2,10 @@ import crypto from "crypto";
 import * as core from "webcrypto-core";
 import { SubtleCrypto } from "./subtle";
 
+// Export all key types so we can persist them properly (with typeson)
+export * from "./keys";
+export * from "./mechs";
+
 export class Crypto extends core.Crypto {
 
   public subtle = new SubtleCrypto();
